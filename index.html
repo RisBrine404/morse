@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Penerjemah Sandi Morse ↔ Teks Normal</title>
+  <style>
+    :root{
+      --bg: #0f172a;          /* slate-900 */
+      --panel: #111827;       /* gray-900 */
+      --muted: #1f2937;       /* gray-800 */
+      --border: #334155;      /* slate-600 */
+      --text: #e5e7eb;        /* gray-200 */
+      --subtext: #94a3b8;     /* slate-400 */
+      --accent: #22d3ee;      /* cyan-400 */
+      --accent-2: #a78bfa;    /* violet-400 */
+      --ok: #34d399;          /* emerald-400 */
+      --warn: #fbbf24;        /* amber-400 */
+      --err: #f87171;         /* red-400 */
+      --radius: 16px;
+      --shadow: 0 10px 30px rgba(0,0,0,0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0; background: radial-gradient(1200px 600px at 10% -10%, #1e293b, transparent),
+                 radial-gradient(1000px 400px at 120% 20%, #0b1220, transparent), var(--bg);
+      color: var(--text); font: 16px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      display:flex; align-items:center; justify-content:center; padding: 24px;
+    }
+    .app{ width: min(1100px, 100%); }
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    header{ padding: 24px; display:flex; gap:16px; align-items:center; justify-content:space-between; background: linear-gradient(90deg, rgba(34,211,238,0.08), rgba(167,139,250,0.06)); }
+    .brand{ display:flex; gap:12px; align-items:center; }
+    .logo{ width:40px; height:40px; border-radius:12px; background: conic-gradient(from 140deg, var(--accent), var(--accent-2)); box-shadow: inset 0 0 0 2px rgba(255,255,255,0.2); }
+    h1{ font-size: 20px; margin:0; letter-spacing:0.2px; }
+    .desc{ color: var(--subtext); font-size: 13px; margin-top:2px; }
+
+    .tabs{ display:flex; padding: 0 16px; gap:8px; }
+    .tab{ cursor:pointer; border:1px solid var(--border); border-bottom:none; border-radius: 12px 12px 0 0; padding: 10px 14px; color: var(--subtext); background: #0b1220; }
+    .tab.active{ color: var(--text); background: #0f172a; }
+
+    .content{ display:grid; grid-template-columns: 1fr 1fr; gap:16px; padding:16px; background:#0f172a; border-top:1px solid var(--border); }
+    .panel{ background: var(--panel); border:1px solid var(--border); border-radius: 14px; padding:16px; display:flex; flex-direction:column; gap:12px; }
+
+    label{ font-size: 13px; color: var(--subtext); }
+    textarea{ width:100%; min-height: 220px; resize: vertical; padding:12px; border-radius: 12px; border:1px solid var(--border); background: #0b1220; color: var(--text); font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
+    .row{ display:flex; gap:8px; flex-wrap: wrap; align-items:center; }
+    .row > * { flex: none; }
+
+    .btn{ border:1px solid var(--border); background: #0b1220; color: var(--text); padding: 10px 14px; border-radius: 12px; cursor:pointer; transition: transform .05s ease; }
+    .btn:hover{ filter: brightness(1.1); }
+    .btn:active{ transform: scale(0.98); }
+    .btn.primary{ background: linear-gradient(90deg, var(--accent), var(--accent-2)); color:#0b1220; border: none; font-weight: 700; }
+    .btn.ghost{ background: transparent; }
+
+    .grid2{ display:grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap:8px; }
+    .hint{ color: var(--subtext); font-size:12px; }
+
+    .kv{ font-size:12px; color: var(--subtext); display:grid; grid-template-columns: 1fr auto; gap: 6px 10px; }
+    .kv code{ color: var(--text); }
+
+    .footer{ padding: 12px 16px 20px; color: var(--subtext); font-size:12px; border-top:1px dashed var(--border); display:flex; align-items:center; justify-content:space-between; }
+
+    @media (max-width: 900px){
+      .content{ grid-template-columns: 1fr; }
+      .tabs{ flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app card" id="app">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Penerjemah Sandi Morse</h1>
+          <div class="desc">Ubah teks normal ↔ sandi Morse. Termasuk pemutar bunyi Morse (WPM & nada bisa diatur).</div>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn ghost" id="btnHelp" title="Petunjuk">❔ Bantuan</button>
+        <a class="btn" id="btnDownload" download="penerjemah-sandi-morse.html" href="#">⬇️ Unduh Halaman</a>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist" aria-label="Mode Terjemahan">
+      <button class="tab active" id="tab-n2m" role="tab" aria-selected="true" aria-controls="panel-n2m">Normal → Morse</button>
+      <button class="tab" id="tab-m2n" role="tab" aria-selected="false" aria-controls="panel-m2n">Morse → Normal</button>
+    </nav>
+
+    <!-- Normal to Morse -->
+    <section id="panel-n2m" class="content" role="tabpanel" aria-labelledby="tab-n2m">
+      <div class="panel">
+        <label for="textNormal">Teks Normal</label>
+        <textarea id="textNormal" placeholder="Ketik teks di sini… contoh: Halo dunia"></textarea>
+        <div class="row">
+          <div class="grid2" style="flex:1 1 auto">
+            <label class="hint"><input type="checkbox" id="upperCase" /> Hasil huruf besar</label>
+            <label class="hint"><input type="checkbox" id="useSlash" checked/> Gunakan "/" untuk jarak kata</label>
+          </div>
+          <button class="btn" id="btnConvertN2M">Terjemahkan</button>
+          <button class="btn" id="btnClearN">Bersihkan</button>
+        </div>
+      </div>
+      <div class="panel">
+        <label for="textMorse">Hasil Sandi Morse</label>
+        <textarea id="textMorse" placeholder="… .... .- .-.. --- / -.. ..- -. .. .-"></textarea>
+        <div class="row">
+          <button class="btn primary" id="btnPlay">▶️ Putar</button>
+          <button class="btn" id="btnStop">⏹️ Stop</button>
+          <div class="grid2" style="min-width:280px">
+            <label class="hint">WPM <input type="range" min="5" max="40" value="18" id="wpm"/></label>
+            <label class="hint">Nada (Hz) <input type="range" min="200" max="1200" value="600" id="tone"/></label>
+          </div>
+          <button class="btn" id="btnCopyM">📋 Salin</button>
+        </div>
+        <div class="hint">Aturan jarak: titik (·) & garis (–) untuk elemen; spasi untuk huruf; "/" atau 7 spasi untuk antar kata.</div>
+      </div>
+    </section>
+
+    <!-- Morse to Normal -->
+    <section id="panel-m2n" class="content" role="tabpanel" aria-labelledby="tab-m2n" hidden>
+      <div class="panel">
+        <label for="textMorseIn">Sandi Morse</label>
+        <textarea id="textMorseIn" placeholder="Ketik kode Morse … gunakan . dan - atau · dan –"></textarea>
+        <div class="row">
+          <div class="grid2" style="flex:1 1 auto">
+            <label class="hint"><input type="checkbox" id="strict"/> Mode ketat (error jika simbol tak dikenal)</label>
+            <label class="hint"><input type="checkbox" id="guessWordGap" checked/> Anggap 3+ spasi = antar kata</label>
+          </div>
+          <button class="btn" id="btnConvertM2N">Terjemahkan</button>
+          <button class="btn" id="btnClearM">Bersihkan</button>
+        </div>
+        <div class="hint">Pisahkan huruf dengan 1 spasi. Gunakan "/" atau 3+ spasi untuk memisahkan kata.</div>
+      </div>
+      <div class="panel">
+        <label for="textNormalOut">Hasil Teks Normal</label>
+        <textarea id="textNormalOut" placeholder="Hasil teks akan terlihat di sini"></textarea>
+        <div class="row">
+          <button class="btn" id="btnCopyN">📋 Salin</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <div>
+        Dibuat untuk konversi <strong>Normal ↔ Morse</strong>. Mendukung huruf A–Z, angka 0–9, dan tanda baca umum (.,?'/!():;&:+-= _"$@).
+      </div>
+      <div class="hint">© 2025</div>
+    </div>
+  </div>
+
+  <dialog id="helpDialog">
+    <form method="dialog" style="border:none; background: var(--panel); color:var(--text); border:1px solid var(--border); border-radius: 14px; padding: 16px; max-width: 720px; box-shadow: var(--shadow)">
+      <h3 style="margin:0 0 6px">Petunjuk Cepat</h3>
+      <ul style="margin:0 0 8px 16px; line-height:1.6">
+        <li><strong>Normal → Morse:</strong> ketik teks biasa lalu klik <em>Terjemahkan</em>. Aktifkan <em>Gunakan "/"</em> agar antar kata dipisah dengan garis miring.</li>
+        <li><strong>Morse → Normal:</strong> pisahkan huruf dengan satu spasi; antar kata dengan <code>/</code> atau 3+ spasi.</li>
+        <li><strong>Audio:</strong> tekan <em>Putar</em> untuk bunyi Morse. Atur kecepatan (WPM) dan nada (Hz).</li>
+        <li>Simbol yang tidak dikenali akan diganti <code>�</code> (atau error di mode ketat).</li>
+      </ul>
+      <div style="text-align:right; margin-top:8px"><button class="btn">Tutup</button></div>
+    </form>
+  </dialog>
+
+  <script>
+    // --- Peta Morse ITU standar ---
+    const MAP = {
+      'A': '.-',    'B': '-...',  'C': '-.-.',  'D': '-..',   'E': '.',     'F': '..-.',
+      'G': '--.',   'H': '....',  'I': '..',    'J': '.---',  'K': '-.-',   'L': '.-..',
+      'M': '--',    'N': '-.',    'O': '---',   'P': '.--.',  'Q': '--.-',  'R': '.-.',
+      'S': '...',   'T': '-',     'U': '..-',   'V': '...-',  'W': '.--',   'X': '-..-',
+      'Y': '-.--',  'Z': '--..',
+      '0': '-----', '1': '.----', '2': '..---', '3': '...--', '4': '....-', '5': '.....',
+      '6': '-....', '7': '--...', '8': '---..', '9': '----.',
+      '.': '.-.-.-', ',': '--..--', '?': '..--..', '\'': '.----.', '!': '-.-.--', '/': '-..-.',
+      '(': '-.--.', ')': '-.--.-', '&': '.-...', ':': '---...', ';': '-.-.-.', '=': '-...-',
+      '+': '.-.-.', '-': '-....-', '_': '..--.-', '"': '.-..-.', '$': '...-..-', '@': '.--.-.'
+    };
+    const MAP_INV = Object.fromEntries(Object.entries(MAP).map(([k,v]) => [v, k]));
+
+    // Helpers for UI
+    const $ = (sel) => document.querySelector(sel);
+    const $$ = (sel) => Array.from(document.querySelectorAll(sel));
+
+    // Elements
+    const tabN2M = $('#tab-n2m');
+    const tabM2N = $('#tab-m2n');
+    const panelN2M = $('#panel-n2m');
+    const panelM2N = $('#panel-m2n');
+
+    // Normal -> Morse
+    const textNormal = $('#textNormal');
+    const textMorse = $('#textMorse');
+    const btnConvertN2M = $('#btnConvertN2M');
+    const btnClearN = $('#btnClearN');
+    const btnCopyM = $('#btnCopyM');
+    const upperCase = $('#upperCase');
+    const useSlash = $('#useSlash');
+
+    // Morse -> Normal
+    const textMorseIn = $('#textMorseIn');
+    const textNormalOut = $('#textNormalOut');
+    const btnConvertM2N = $('#btnConvertM2N');
+    const btnClearM = $('#btnClearM');
+    const btnCopyN = $('#btnCopyN');
+    const strict = $('#strict');
+    const guessWordGap = $('#guessWordGap');
+
+    // Audio controls
+    const btnPlay = $('#btnPlay');
+    const btnStop = $('#btnStop');
+    const wpmInput = $('#wpm');
+    const toneInput = $('#tone');
+
+    // Help & download
+    const helpDialog = $('#helpDialog');
+    const btnHelp = $('#btnHelp');
+    const btnDownload = $('#btnDownload');
+
+    // --- Tabs ---
+    function setTab(which){
+      const isN2M = which === 'n2m';
+      tabN2M.classList.toggle('active', isN2M);
+      tabM2N.classList.toggle('active', !isN2M);
+      panelN2M.hidden = !isN2M;
+      panelM2N.hidden = isN2M;
+      (isN2M ? textNormal : textMorseIn).focus();
+    }
+    tabN2M.addEventListener('click', () => setTab('n2m'));
+    tabM2N.addEventListener('click', () => setTab('m2n'));
+
+    // --- Normal -> Morse ---
+    function normalizeChar(ch){
+      // Ganti huruf beraksen umum ke dasar
+      const basic = ch.normalize('NFD').replace(/\p{Diacritic}+/gu, '');
+      return basic[0] || ch;
+    }
+
+    function textToMorse(text, options={}){
+      const { wordSepSlash = true } = options;
+      const words = text.split(/\s+/).filter(Boolean);
+      const outWords = words.map(word => {
+        const letters = [...word];
+        const morseLetters = letters.map(ch => {
+          const up = normalizeChar(ch).toUpperCase();
+          if (MAP[up]) return MAP[up];
+          if (up === 'Ñ') return '--.--'; // contoh mapping ekstra
+          return '�';
+        });
+        return morseLetters.join(' ');
+      });
+      return outWords.join(wordSepSlash ? ' / ' : '   ');
+    }
+
+    function morseToText(morse, options={}){
+      const { strict=false, guessWordGap=true } = options;
+      // Terima . dan - serta · dan –
+      const normalized = morse.replace(/[•·]/g, '.').replace(/[–—−_]/g, '-');
+      // Kata dipisah oleh / atau 3+ spasi (opsional)
+      const wordSplitter = guessWordGap ? /\s{3,}|\s*\/\s*/g : /\s*\/\s*/g;
+      const words = normalized.trim().split(wordSplitter).filter(w => w.length>0);
+      const decodedWords = words.map(word => {
+        const letters = word.trim().split(/\s+/);
+        const decodedLetters = letters.map(code => {
+          if (MAP_INV[code]) return MAP_INV[code];
+          if (strict && code) throw new Error('Simbol morse tidak dikenal: '+code);
+          return '�';
+        });
+        return decodedLetters.join('');
+      });
+      return decodedWords.join(' ');
+    }
+
+    btnConvertN2M.addEventListener('click', () => {
+      const morse = textToMorse(textNormal.value, { wordSepSlash: useSlash.checked });
+      textMorse.value = morse;
+    });
+    btnClearN.addEventListener('click', () => { textNormal.value = ''; textMorse.value=''; textNormal.focus(); });
+    btnCopyM.addEventListener('click', async () => { await navigator.clipboard.writeText(textMorse.value); flash(btnCopyM); });
+    upperCase.addEventListener('change', () => {
+      textNormalOut.value = upperCase.checked ? textNormalOut.value.toUpperCase() : textNormalOut.value.toLowerCase();
+    });
+
+    // --- Morse -> Normal ---
+    btnConvertM2N.addEventListener('click', () => {
+      try{
+        const text = morseToText(textMorseIn.value, { strict: strict.checked, guessWordGap: guessWordGap.checked });
+        textNormalOut.value = upperCase.checked ? text.toUpperCase() : text;
+      }catch(e){
+        alert(e.message);
+      }
+    });
+    btnClearM.addEventListener('click', () => { textMorseIn.value=''; textNormalOut.value=''; textMorseIn.focus(); });
+    btnCopyN.addEventListener('click', async () => { await navigator.clipboard.writeText(textNormalOut.value); flash(btnCopyN); });
+
+    // --- Audio (WebAudio API) ---
+    let audioCtx = null, currentPlay = { cancel: false };
+    function playMorseSequence(seq, wpm=18, tone=600){
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const unit = 1200 / wpm; // ms per dit
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = tone;
+      gain.gain.value = 0;
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start();
+
+      let t = audioCtx.currentTime;
+      const u = unit/1000; // to seconds
+      const localToken = { cancel: false };
+      currentPlay.cancel = true; // stop any previous schedule
+      currentPlay = localToken;
+
+      function beep(dur){
+        gain.gain.setTargetAtTime(1, t, 0.001); // attack
+        t += dur;
+        gain.gain.setTargetAtTime(0.0001, t, 0.005); // release
+        t += u; // intra-element gap (1u)
+      }
+
+      for (const ch of seq){
+        if (localToken.cancel) break;
+        if (ch === '.') beep(1*u);
+        else if (ch === '-') beep(3*u);
+        else if (ch === ' ') { t += 2*u; } // we already added 1u after element; +2u to make inter-letter = 3u
+        else if (ch === '/') { t += 6*u; } // +6u to make inter-word = 7u total
+      }
+
+      // stop oscillator after schedule
+      osc.stop(t + 0.05);
+    }
+
+    btnPlay.addEventListener('click', () => {
+      const seq = textMorse.value.trim();
+      if (!seq){ alert('Tidak ada kode Morse untuk diputar.'); return; }
+      playMorseSequence(seq.replace(/[•·]/g, '.').replace(/[–—−_]/g, '-'), parseInt(wpmInput.value,10), parseInt(toneInput.value,10));
+    });
+    btnStop.addEventListener('click', () => { currentPlay.cancel = true; try{ if (audioCtx) audioCtx.close(); }catch{} audioCtx = null; });
+
+    // --- Misc UX ---
+    function flash(el){
+      const original = el.textContent;
+      el.textContent = '✔️ Disalin';
+      setTimeout(() => el.textContent = original, 1000);
+    }
+
+    btnHelp.addEventListener('click', () => helpDialog.showModal());
+
+    // Enable realtime conversion (optional, debounced)
+    let t1, t2;
+    textNormal.addEventListener('input', () => { clearTimeout(t1); t1=setTimeout(()=>btnConvertN2M.click(), 150); });
+    textMorseIn.addEventListener('input', () => { clearTimeout(t2); t2=setTimeout(()=>btnConvertM2N.click(), 150); });
+
+    // Prepare self-download of the single file
+    (function prepDownload(){
+      const html = document.documentElement.outerHTML;
+      const blob = new Blob(["\uFEFF" + '<!DOCTYPE html>\n' + html], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      btnDownload.href = url;
+    })();
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e)=>{
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='b') { e.preventDefault(); btnPlay.click(); }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase()==='\x0d') { // Enter
+        e.preventDefault();
+        if (!panelN2M.hidden) btnConvertN2M.click(); else btnConvertM2N.click();
+      }
+    });
+  </script>
+</body>
+</html>
